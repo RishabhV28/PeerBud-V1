@@ -19,6 +19,15 @@ export function NavBar() {
           Peerbud
         </Link>
 
+        <div className="hidden md:flex items-center space-x-4">
+          <Link href="/papers/all">
+            <Button variant="ghost">Browse Papers</Button>
+          </Link>
+          <Link href="/guide">
+            <Button variant="ghost">Writing Guide</Button>
+          </Link>
+        </div>
+
         <div className="flex-1" />
 
         <div className="flex items-center gap-4">

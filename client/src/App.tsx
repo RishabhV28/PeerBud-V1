@@ -8,17 +8,25 @@ import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import PapersPage from "@/pages/papers-page";
 import UploadPaper from "@/pages/upload-paper";
+import AllPapersPage from "@/pages/all-papers";
+import PaperGuidePage from "@/pages/paper-guide";
 import { ProtectedRoute } from "./lib/protected-route";
+import { Footer } from "@/components/footer";
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={HomePage} />
-      <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/papers" component={PapersPage} />
-      <ProtectedRoute path="/upload" component={UploadPaper} />
-      <Route component={NotFound} />
-    </Switch>
+    <div className="min-h-screen flex flex-col">
+      <Switch>
+        <Route path="/" component={HomePage} />
+        <Route path="/auth" component={AuthPage} />
+        <Route path="/papers/all" component={AllPapersPage} />
+        <Route path="/guide" component={PaperGuidePage} />
+        <ProtectedRoute path="/papers" component={PapersPage} />
+        <ProtectedRoute path="/upload" component={UploadPaper} />
+        <Route component={NotFound} />
+      </Switch>
+      <Footer />
+    </div>
   );
 }
 
