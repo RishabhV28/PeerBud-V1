@@ -10,6 +10,7 @@ import PapersPage from "@/pages/papers-page";
 import UploadPaper from "@/pages/upload-paper";
 import AllPapersPage from "@/pages/all-papers";
 import PaperGuidePage from "@/pages/paper-guide";
+import ProfessorDashboard from "@/pages/professor-dashboard";
 import { ProtectedRoute } from "./lib/protected-route";
 import { Footer } from "@/components/footer";
 
@@ -23,6 +24,7 @@ function Router() {
         <Route path="/guide" component={PaperGuidePage} />
         <ProtectedRoute path="/papers" component={PapersPage} />
         <ProtectedRoute path="/upload" component={UploadPaper} />
+        <ProtectedRoute path="/professor" component={ProfessorDashboard} />
         <Route component={NotFound} />
       </Switch>
       <Footer />

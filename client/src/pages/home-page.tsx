@@ -19,11 +19,18 @@ export default function HomePage() {
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
               Connect with top academic institutes for professional peer review of your research papers
             </p>
-            <Link href="/upload">
-              <Button size="lg" className="gap-2">
-                Upload Your Paper <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+            <div className="flex flex-col md:flex-row gap-4 justify-center">
+              <Link href="/upload">
+                <Button size="lg" className="gap-2">
+                  Upload Your Paper <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/papers/all">
+                <Button size="lg" variant="outline" className="gap-2">
+                  Browse Papers <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
 
           <InstitutesGrid />
