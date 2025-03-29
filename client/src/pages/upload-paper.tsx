@@ -476,9 +476,9 @@ export default function UploadPaper() {
                       <Button
                         type="submit"
                         className="flex-1"
-                        disabled={uploadMutation.isPending}
+                        disabled={uploadMutation.isLoading}
                       >
-                        {uploadMutation.isPending ? (
+                        {uploadMutation.isLoading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Uploading...
