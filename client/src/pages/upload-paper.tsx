@@ -2,7 +2,7 @@ import { NavBar } from "@/components/nav-bar";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { insertPaperSchema, type InsertPaper, INSTITUTES } from "@shared/schema";
+import { insertPaperSchema, INSTITUTES } from "@shared/schema";
 import {
   Form,
   FormControl,
@@ -32,18 +32,40 @@ export default function UploadPaper() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  const form = useForm<InsertPaper & { institute: string }>({
-    resolver: zodResolver(insertPaperSchema.extend({
-      institute: z.string().min(1, "Please select an institute")
-    })),
+  // Define our custom form type with file upload
+  type PaperForm = {
+    title: string;
+    abstract: string;
+    price: number;
+    institute: string;
+    file: File | null;
+  };
+
+  const paperFormSchema = z.object({
+    title: z.string().min(1, "Title is required"),
+    abstract: z.string().min(1, "Abstract is required"),
+    price: z.number().min(1000).max(3000),
+    institute: z.string().min(1, "Please select an institute"),
+    file: z.instanceof(File, { message: "Please upload a PDF file" }).nullable(),
+  });
+  
+  const form = useForm<PaperForm>({
+    resolver: zodResolver(paperFormSchema),
     defaultValues: {
       price: 2000,
       institute: "",
+      file: null,
+      title: "",
+      abstract: "",
     },
   });
 
   const uploadMutation = useMutation({
-    mutationFn: async (data: InsertPaper & { file: File, institute: string }) => {
+    mutationFn: async (data: PaperForm) => {
+      if (!data.file) {
+        throw new Error("No file selected");
+      }
+      
       const formData = new FormData();
       formData.append("file", data.file);
       formData.append("title", data.title);
@@ -57,7 +79,8 @@ export default function UploadPaper() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to upload paper");
+        const errorMessage = await res.text().catch(() => "Failed to upload paper");
+        throw new Error(errorMessage || "Failed to upload paper");
       }
 
       return res.json();
@@ -90,20 +113,15 @@ export default function UploadPaper() {
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit((data) => {
-                  const fileInput = document.querySelector<HTMLInputElement>(
-                    'input[type="file"]',
-                  );
-                  if (!fileInput?.files?.[0]) {
+                  if (!data.file) {
                     toast({
                       title: "Please select a file",
                       variant: "destructive",
                     });
                     return;
                   }
-                  uploadMutation.mutate({
-                    ...data,
-                    file: fileInput.files[0],
-                  });
+                  
+                  uploadMutation.mutate(data);
                 })}
                 className="space-y-6"
               >
@@ -135,13 +153,30 @@ export default function UploadPaper() {
                   )}
                 />
 
-                <FormItem>
-                  <FormLabel>Paper File (PDF)</FormLabel>
-                  <FormControl>
-                    <Input type="file" accept=".pdf" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                <FormField
+                  control={form.control}
+                  name="file"
+                  render={({ field: { value, onChange, ...field } }) => (
+                    <FormItem>
+                      <FormLabel>Paper File (PDF)</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="file"
+                          accept=".pdf"
+                          onChange={(e) => {
+                            // this handles the file input change
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              onChange(file);
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
