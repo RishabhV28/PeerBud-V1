@@ -6,10 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, INSTITUTES } from "@shared/schema";
 import { Redirect } from "wouter";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -21,6 +21,12 @@ import {
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [userRole, setUserRole] = useState<"user" | "professor">("user");
+  const [showInstituteField, setShowInstituteField] = useState(false);
+  const [institute, setInstitute] = useState<string>("");
+
+  useEffect(() => {
+    setShowInstituteField(userRole === "professor");
+  }, [userRole]);
 
   const loginForm = useForm({
     resolver: zodResolver(insertUserSchema),
@@ -35,7 +41,8 @@ export default function AuthPage() {
     defaultValues: {
       username: "",
       password: "",
-      role: "user" as const
+      role: "user" as const,
+      institute: ""
     }
   });
 
@@ -67,10 +74,18 @@ export default function AuthPage() {
               <TabsContent value="login">
                 <form
                   onSubmit={loginForm.handleSubmit((data) => {
-                    loginMutation.mutate({
+                    // Include institute if professor role is selected
+                    const mutationData = {
                       username: data.username,
                       password: data.password
-                    });
+                    };
+                    
+                    // Use type assertion to add optional institute field
+                    if (userRole === "professor" && institute) {
+                      (mutationData as any).institute = institute;
+                    }
+                    
+                    loginMutation.mutate(mutationData);
                   })}
                   className="space-y-4"
                 >
@@ -105,6 +120,30 @@ export default function AuthPage() {
                       Note: Selecting 'Professor' lets you review papers; 'Student' lets you submit papers
                     </p>
                   </div>
+                  
+                  {showInstituteField && (
+                    <div>
+                      <Label htmlFor="login-institute">Institute</Label>
+                      <Select
+                        value={institute}
+                        onValueChange={setInstitute}
+                      >
+                        <SelectTrigger id="login-institute">
+                          <SelectValue placeholder="Select your institute" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {INSTITUTES.map((inst) => (
+                            <SelectItem key={inst} value={inst}>
+                              {inst}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        You will only see papers submitted to your institute
+                      </p>
+                    </div>
+                  )}
                   <Button
                     type="submit"
                     className="w-full"
@@ -121,11 +160,19 @@ export default function AuthPage() {
               <TabsContent value="register">
                 <form
                   onSubmit={registerForm.handleSubmit((data) => {
-                    registerMutation.mutate({
+                    // Include institute if professor role is selected
+                    const mutationData = {
                       username: data.username,
                       password: data.password,
                       role: userRole
-                    });
+                    };
+                    
+                    // Use type assertion to add optional institute field
+                    if (userRole === "professor" && institute) {
+                      (mutationData as any).institute = institute;
+                    }
+                    
+                    registerMutation.mutate(mutationData);
                   })}
                   className="space-y-4"
                 >
@@ -160,6 +207,30 @@ export default function AuthPage() {
                       Note: Selecting 'Professor' lets you review papers; 'Student' lets you submit papers
                     </p>
                   </div>
+                  
+                  {showInstituteField && (
+                    <div>
+                      <Label htmlFor="register-institute">Institute</Label>
+                      <Select
+                        value={institute}
+                        onValueChange={setInstitute}
+                      >
+                        <SelectTrigger id="register-institute">
+                          <SelectValue placeholder="Select your institute" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {INSTITUTES.map((inst) => (
+                            <SelectItem key={inst} value={inst}>
+                              {inst}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        You will only see papers submitted to your institute
+                      </p>
+                    </div>
+                  )}
                   <Button
                     type="submit"
                     className="w-full"

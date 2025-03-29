@@ -53,10 +53,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/professor/pending-papers", async (req, res) => {
     if (!isProfessor(req)) return res.sendStatus(403);
-    // Get all papers that are pending and not assigned
+    // Get all papers that are pending, not assigned, and match the professor's institute
     const allPapers = await storage.getPapers();
     const pendingPapers = allPapers.filter(paper => 
-      paper.status === "pending" && !paper.assignedTo
+      paper.status === "pending" && 
+      !paper.assignedTo && 
+      paper.institute === req.user!.institute
     );
     res.json(pendingPapers);
   });
@@ -66,8 +68,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const paperId = parseInt(req.params.id);
-      const paper = await storage.assignPaperToProfessor(paperId, req.user!.id);
-      res.json(paper);
+      const paper = await storage.getPaperById(paperId);
+      
+      if (!paper) {
+        return res.status(404).json({ error: "Paper not found" });
+      }
+      
+      // Ensure professor can only assign papers from their institute
+      if (paper.institute !== req.user!.institute) {
+        return res.status(403).json({ error: "You can only review papers from your institute" });
+      }
+      
+      const updatedPaper = await storage.assignPaperToProfessor(paperId, req.user!.id);
+      res.json(updatedPaper);
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });
     }

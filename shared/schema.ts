@@ -2,11 +2,25 @@ import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Available institutes for selection
+export const INSTITUTES = [
+  "Raincode",
+  "IIT Delhi",
+  "IIT Bombay",
+  "IIT Madras",
+  "IIT Kanpur",
+  "IIT Kharagpur",
+  "IIM Ahmedabad",
+  "IIM Bangalore",
+  "IIM Calcutta"
+];
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   role: text("role").notNull().default("user"),
+  institute: text("institute"),
 });
 
 export const papers = pgTable("papers", {
@@ -20,6 +34,7 @@ export const papers = pgTable("papers", {
   submitted: timestamp("submitted").notNull().defaultNow(),
   assignedTo: integer("assigned_to"),
   feedback: text("feedback"),
+  institute: text("institute").notNull(),
 });
 
 export const reviews = pgTable("reviews", {
@@ -35,8 +50,10 @@ export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
   role: true,
+  institute: true,
 }).extend({
   role: z.enum(["user", "professor"]).default("user"),
+  institute: z.string().optional(),
 });
 
 export const insertPaperSchema = createInsertSchema(papers)
@@ -45,9 +62,11 @@ export const insertPaperSchema = createInsertSchema(papers)
     abstract: true,
     filePath: true,
     price: true,
+    institute: true,
   })
   .extend({
     price: z.number().min(1000).max(3000),
+    institute: z.string(),
   });
 
 export const insertReviewSchema = createInsertSchema(reviews)

@@ -1,7 +1,8 @@
 import { NavBar } from "@/components/nav-bar";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertPaperSchema, type InsertPaper } from "@shared/schema";
+import { z } from "zod";
+import { insertPaperSchema, type InsertPaper, INSTITUTES } from "@shared/schema";
 import {
   Form,
   FormControl,
@@ -15,6 +16,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -24,20 +32,24 @@ export default function UploadPaper() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  const form = useForm<InsertPaper>({
-    resolver: zodResolver(insertPaperSchema),
+  const form = useForm<InsertPaper & { institute: string }>({
+    resolver: zodResolver(insertPaperSchema.extend({
+      institute: z.string().min(1, "Please select an institute")
+    })),
     defaultValues: {
       price: 2000,
+      institute: "",
     },
   });
 
   const uploadMutation = useMutation({
-    mutationFn: async (data: InsertPaper & { file: File }) => {
+    mutationFn: async (data: InsertPaper & { file: File, institute: string }) => {
       const formData = new FormData();
       formData.append("file", data.file);
       formData.append("title", data.title);
       formData.append("abstract", data.abstract);
       formData.append("price", data.price.toString());
+      formData.append("institute", data.institute);
 
       const res = await fetch("/api/papers", {
         method: "POST",
@@ -130,6 +142,34 @@ export default function UploadPaper() {
                   </FormControl>
                   <FormMessage />
                 </FormItem>
+
+                <FormField
+                  control={form.control}
+                  name="institute"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Submit to Institute</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an institute" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {INSTITUTES.map((inst) => (
+                              <SelectItem key={inst} value={inst}>
+                                {inst}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
