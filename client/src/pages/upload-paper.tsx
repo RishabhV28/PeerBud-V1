@@ -270,6 +270,63 @@ export default function UploadPaper() {
         
         <Progress value={formatResult.formatScore} className="h-2" />
         
+        {/* Display AI Analysis Scores */}
+        {formatResult.aiAnalysis && (
+          <div className="mt-4 space-y-4">
+            <div>
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium">AI Quality Assessment</h4>
+                <span className={`px-2 py-1 rounded text-xs ${
+                  formatResult.aiAnalysis.overallQuality === "Excellent" ? "bg-green-100 text-green-800" : 
+                  formatResult.aiAnalysis.overallQuality === "Good" ? "bg-blue-100 text-blue-800" :
+                  formatResult.aiAnalysis.overallQuality === "Average" ? "bg-yellow-100 text-yellow-800" :
+                  "bg-red-100 text-red-800"
+                }`}>
+                  {formatResult.aiAnalysis.overallQuality}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">Academic Tone</p>
+                  <Progress value={formatResult.aiAnalysis.academicTone} className="h-2 mt-1" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Organization</p>
+                  <Progress value={formatResult.aiAnalysis.organizationScore} className="h-2 mt-1" />
+                </div>
+              </div>
+            </div>
+            
+            {/* AI Strengths and Weaknesses */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-green-50 rounded-md p-3">
+                <h4 className="text-sm font-medium text-green-800 mb-2">Strengths</h4>
+                <ul className="space-y-1">
+                  {formatResult.aiAnalysis.strengths.map((strength, i) => (
+                    <li key={i} className="text-xs text-green-800 flex items-start">
+                      <CheckCircle size={10} className="mr-1 mt-0.5 shrink-0" />
+                      <span>{strength}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div className="bg-red-50 rounded-md p-3">
+                <h4 className="text-sm font-medium text-red-800 mb-2">Areas for Improvement</h4>
+                <ul className="space-y-1">
+                  {formatResult.aiAnalysis.weaknesses.map((weakness, i) => (
+                    <li key={i} className="text-xs text-red-800 flex items-start">
+                      <AlertCircle size={10} className="mr-1 mt-0.5 shrink-0" />
+                      <span>{weakness}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="mt-4">
           <h4 className="text-sm font-medium mb-2">Section Check</h4>
           <ul className="space-y-1 text-xs">
@@ -476,9 +533,9 @@ export default function UploadPaper() {
                       <Button
                         type="submit"
                         className="flex-1"
-                        disabled={uploadMutation.isLoading}
+                        disabled={uploadMutation.isPending}
                       >
-                        {uploadMutation.isLoading ? (
+                        {uploadMutation.isPending ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Uploading...
