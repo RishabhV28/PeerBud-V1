@@ -1,9 +1,11 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { insertPaperSchema, insertReviewSchema } from "@shared/schema";
 import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 const upload = multer({ dest: "uploads/" });
 
@@ -140,6 +142,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const reviews = await storage.getReviewsByPaperId(paperId);
       res.json(reviews);
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  // Serve PDF files to authenticated users
+  app.get("/api/papers/:id/pdf", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const paperId = parseInt(req.params.id);
+      const paper = await storage.getPaperById(paperId);
+      
+      if (!paper) {
+        return res.status(404).json({ error: "Paper not found" });
+      }
+      
+      // Only allow the paper owner or assigned professor to see the PDF
+      if (paper.userId !== req.user!.id && paper.assignedTo !== req.user!.id) {
+        return res.status(403).json({ error: "You don't have permission to view this paper" });
+      }
+      
+      const filePath = paper.filePath;
+      
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: "PDF file not found" });
+      }
+      
+      // Set appropriate headers
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="paper-${paperId}.pdf"`);
+      
+      // Create read stream and pipe to response
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+      
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });
     }

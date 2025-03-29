@@ -22,8 +22,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PDFViewer } from "@/components/pdf-viewer";
 import { Redirect } from "wouter";
-import { Loader2, File, Clock, Check } from "lucide-react";
+import { Loader2, File, Clock, Check, FileText, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -34,6 +36,8 @@ export default function ProfessorDashboard() {
   const [feedbackText, setFeedbackText] = useState("");
   const [rating, setRating] = useState("3");
   const [selectedPaperId, setSelectedPaperId] = useState<number | null>(null);
+  const [viewingPdfPaperId, setViewingPdfPaperId] = useState<number | null>(null);
+  const [currentPdfTitle, setCurrentPdfTitle] = useState<string>("");
 
   // Redirect if not logged in as professor
   if (!user) {
@@ -131,9 +135,31 @@ export default function ProfessorDashboard() {
     });
   }
 
+  function openPdf(paperId: number, title: string) {
+    setViewingPdfPaperId(paperId);
+    setCurrentPdfTitle(title);
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <NavBar />
+
+      {/* PDF Viewer Dialog */}
+      <Dialog open={viewingPdfPaperId !== null} onOpenChange={(open) => {
+        if (!open) setViewingPdfPaperId(null);
+      }}>
+        <DialogContent className="max-w-6xl w-[90vw]">
+          <DialogHeader>
+            <DialogTitle>{currentPdfTitle}</DialogTitle>
+          </DialogHeader>
+          {viewingPdfPaperId && (
+            <PDFViewer 
+              fileUrl={`/api/papers/${viewingPdfPaperId}/pdf`} 
+              title={currentPdfTitle}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <main className="max-w-7xl mx-auto p-6">
         <div className="mb-8">
@@ -179,6 +205,17 @@ export default function ProfessorDashboard() {
                         <h4 className="font-semibold mb-1">Abstract</h4>
                         <p className="text-sm text-muted-foreground">{paper.abstract}</p>
                       </div>
+                      
+                      {/* PDF View Button */}
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full mb-4 mt-2"
+                        onClick={() => openPdf(paper.id, paper.title)}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Full Paper (PDF)
+                      </Button>
                       
                       {selectedPaperId === paper.id ? (
                         <div className="space-y-4">
@@ -275,10 +312,21 @@ export default function ProfessorDashboard() {
                         <h4 className="font-semibold mb-1">Abstract</h4>
                         <p className="text-sm text-muted-foreground">{paper.abstract}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 mb-4">
                         <span className="text-sm font-medium">Price:</span>
                         <span className="text-sm">₹{paper.price}</span>
                       </div>
+                      
+                      {/* PDF View Button */}
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full mb-2"
+                        onClick={() => openPdf(paper.id, paper.title)}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Full Paper (PDF)
+                      </Button>
                     </CardContent>
                     <CardFooter>
                       <Button
