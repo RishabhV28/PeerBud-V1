@@ -148,6 +148,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Serve PDF files to authenticated users
+  // Debugging endpoint to check if file exists
+  app.get("/api/papers/:id/check", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const paperId = parseInt(req.params.id);
+      const paper = await storage.getPaperById(paperId);
+      
+      if (!paper) {
+        return res.status(404).json({ error: "Paper not found", id: paperId });
+      }
+      
+      const filePath = paper.filePath;
+      const fileExists = fs.existsSync(filePath);
+      
+      res.json({
+        paperId,
+        filePath,
+        fileExists,
+        fileSize: fileExists ? fs.statSync(filePath).size : 0
+      });
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  // Serve PDF files to authenticated users
   app.get("/api/papers/:id/pdf", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
@@ -159,8 +186,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Paper not found" });
       }
       
-      // Only allow the paper owner or assigned professor to see the PDF
-      if (paper.userId !== req.user!.id && paper.assignedTo !== req.user!.id) {
+      // For professors, they can access if they have the same institute or if the paper is assigned to them
+      const isProfessorWithAccess = 
+        req.user!.role === "professor" && 
+        (paper.institute === req.user!.institute || paper.assignedTo === req.user!.id);
+        
+      // Only allow the paper owner or authorized professors to see the PDF
+      if (paper.userId !== req.user!.id && !isProfessorWithAccess) {
         return res.status(403).json({ error: "You don't have permission to view this paper" });
       }
       
@@ -168,18 +200,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if file exists
       if (!fs.existsSync(filePath)) {
+        console.error(`File not found: ${filePath}`);
         return res.status(404).json({ error: "PDF file not found" });
       }
       
-      // Set appropriate headers
+      // Set appropriate headers for PDF delivery
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `inline; filename="paper-${paperId}.pdf"`);
       
       // Create read stream and pipe to response
       const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
+      fileStream.on('error', (err) => {
+        console.error('Error reading file:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Error reading PDF file" });
+        }
+      });
       
+      fileStream.pipe(res);
     } catch (error) {
+      console.error('Error serving PDF:', error);
       res.status(400).json({ error: (error as Error).message });
     }
   });
