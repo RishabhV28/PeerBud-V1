@@ -1,11 +1,7 @@
 import { useState } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Loader2, ZoomIn, ZoomOut } from 'lucide-react';
-
-// Set up the worker for PDF.js
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+import { ExternalLink, Loader2, ZoomIn, ZoomOut } from 'lucide-react';
 
 interface PDFViewerProps {
   fileUrl: string;
@@ -13,31 +9,9 @@ interface PDFViewerProps {
 }
 
 export function PDFViewer({ fileUrl, title }: PDFViewerProps) {
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [pageNumber, setPageNumber] = useState<number>(1);
-  const [scale, setScale] = useState<number>(1.0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
-    setNumPages(numPages);
-    setLoading(false);
-  }
-
-  function onDocumentLoadError(err: Error) {
-    console.error('Error loading PDF:', err);
-    setError('Failed to load PDF. Please try again later.');
-    setLoading(false);
-  }
-
-  function changePage(offset: number) {
-    if (!numPages) return;
-    
-    const newPage = pageNumber + offset;
-    if (newPage >= 1 && newPage <= numPages) {
-      setPageNumber(newPage);
-    }
-  }
+  const [scale, setScale] = useState<number>(1.0);
 
   function zoom(factor: number) {
     const newScale = scale + factor;
@@ -46,8 +20,18 @@ export function PDFViewer({ fileUrl, title }: PDFViewerProps) {
     }
   }
 
+  // Handle iframe load events
+  function handleIframeLoad() {
+    setLoading(false);
+  }
+
+  function handleIframeError() {
+    setError('Failed to load PDF. Make sure the file exists and is a valid PDF.');
+    setLoading(false);
+  }
+
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden w-full">
       <div className="p-4 bg-muted/30 border-b">
         <div className="flex items-center justify-between">
           <h3 className="font-medium">{title || 'PDF Document'}</h3>
@@ -69,64 +53,52 @@ export function PDFViewer({ fileUrl, title }: PDFViewerProps) {
             >
               <ZoomIn className="h-4 w-4" />
             </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.open(fileUrl, '_blank')}
+              title="Open in new tab"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
       
-      <div className="p-4 flex justify-center min-h-[500px] bg-muted/10">
+      <div className="relative w-full" style={{ height: '70vh' }}>
         {loading && (
-          <div className="flex items-center justify-center h-full">
+          <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         )}
         
         {error && (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-destructive">{error}</p>
+          <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
+            <div className="text-center p-4">
+              <p className="text-destructive mb-4">{error}</p>
+              <Button 
+                variant="outline"
+                onClick={() => window.open(fileUrl, '_blank')}
+              >
+                Try opening in new tab
+                <ExternalLink className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
           </div>
         )}
         
-        <Document
-          file={fileUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          onLoadError={onDocumentLoadError}
-          loading={null}
-        >
-          <Page 
-            pageNumber={pageNumber} 
-            scale={scale}
-            loading={null}
-            renderTextLayer={false}
-            renderAnnotationLayer={false}
-          />
-        </Document>
+        <iframe 
+          src={fileUrl}
+          className="w-full h-full border-0"
+          onLoad={handleIframeLoad}
+          onError={handleIframeError}
+          style={{ 
+            transform: `scale(${scale})`, 
+            transformOrigin: 'center top',
+            margin: '0 auto'
+          }}
+        />
       </div>
-      
-      {numPages && (
-        <div className="p-4 bg-muted/30 border-t flex items-center justify-between">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => changePage(-1)}
-            disabled={pageNumber <= 1}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-          </Button>
-          
-          <span className="text-sm">
-            Page {pageNumber} of {numPages}
-          </span>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => changePage(1)}
-            disabled={pageNumber >= numPages}
-          >
-            Next <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
-      )}
     </Card>
   );
 }

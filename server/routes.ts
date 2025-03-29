@@ -204,9 +204,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "PDF file not found" });
       }
       
-      // Set appropriate headers for PDF delivery
+      // Set appropriate headers for PDF delivery with CORS headers
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `inline; filename="paper-${paperId}.pdf"`);
+      
+      // Add CORS headers to allow viewing PDFs in iframe
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+      res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
       
       // Create read stream and pipe to response
       const fileStream = fs.createReadStream(filePath);
