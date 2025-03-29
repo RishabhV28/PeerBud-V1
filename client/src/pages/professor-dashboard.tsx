@@ -44,20 +44,20 @@ export default function ProfessorDashboard() {
     return <Redirect to="/" />;
   }
 
+  // Get assigned papers
   const {
     data: assignedPapers,
     isLoading: assignedLoading,
   } = useQuery<Paper[]>({
     queryKey: ["/api/professor/papers"],
-    queryFn: getQueryFn({ on401: "throw" }),
   });
 
+  // Get pending papers
   const {
     data: pendingPapers,
     isLoading: pendingLoading,
   } = useQuery<Paper[]>({
     queryKey: ["/api/professor/pending-papers"],
-    queryFn: getQueryFn({ on401: "throw" }),
   });
 
   const assignPaperMutation = useMutation({
