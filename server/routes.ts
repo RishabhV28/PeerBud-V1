@@ -6,6 +6,7 @@ import { insertPaperSchema, insertReviewSchema } from "@shared/schema";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { extractTextFromPDF } from "./pdf-utils";
 
 const upload = multer({ dest: "uploads/" });
 
@@ -144,6 +145,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(reviews);
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  // Grammar and format checking API endpoints
+  app.post("/api/papers/check-grammar", upload.single("file"), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.file) return res.status(400).send("No file uploaded");
+    
+    try {
+      // Extract text from PDF
+      const extractedText = await extractTextFromPDF(req.file.path);
+      
+      // We'll simulate grammar checking on the server side
+      // In a production app, you might want to do this on the client
+      // or use a more sophisticated NLP service
+      const results = {
+        text: extractedText.substring(0, 500) + "...", // Return a preview
+        wordCount: extractedText.split(/\s+/).length,
+        sentenceCount: extractedText.split(/[.!?]+/).length - 1,
+        paragraphCount: extractedText.split(/\n\s*\n/).length,
+        errors: [
+          {
+            type: "grammar",
+            line: 2,
+            suggestion: "Consider revising this sentence for clarity"
+          },
+          {
+            type: "spelling",
+            line: 5,
+            suggestion: "Check spelling of technical terms"
+          }
+        ],
+        score: 85 // Simulated grammar score
+      };
+      
+      // Delete the temporary file after processing
+      fs.unlinkSync(req.file.path);
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Error checking grammar:", error);
+      res.status(500).json({ error: (error as Error).message });
+    }
+  });
+  
+  app.post("/api/papers/check-format", upload.single("file"), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.file) return res.status(400).send("No file uploaded");
+    
+    try {
+      // Extract text from PDF
+      const extractedText = await extractTextFromPDF(req.file.path);
+      
+      // Simulated format checking
+      const results = {
+        sections: [
+          { name: "Abstract", found: true },
+          { name: "Introduction", found: true },
+          { name: "Literature Review", found: true },
+          { name: "Methodology", found: true },
+          { name: "Results", found: true },
+          { name: "Discussion", found: true },
+          { name: "Conclusion", found: true },
+          { name: "References", found: true }
+        ],
+        citationStyle: "APA",
+        formatScore: 90,
+        suggestions: [
+          "Ensure all figures have proper captions",
+          "Consider adding keywords section after abstract"
+        ]
+      };
+      
+      // Delete the temporary file after processing
+      fs.unlinkSync(req.file.path);
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Error checking format:", error);
+      res.status(500).json({ error: (error as Error).message });
     }
   });
 
